@@ -1,0 +1,11 @@
+Time series clustering is a data mining technique that organizes data points into groups based on their similarity in time. It's used to analyze and forecast phenomena such as weather, stock prices, and customer behavior.
+Here are some clustering algorithms:
+Hierarchical clustering
+A popular and easy-to-understand algorithm that can cluster time series with unequal lengths. It has two types: 
+Agglomerative hierarchical clustering: Starts with each item as a cluster and gradually merges them 
+Divisive hierarchical clustering: Starts with all objects as a single cluster and splits it to reach clusters with one object 
+K-means clustering
+A basic and popular algorithm that clusters data into groups based on the distance between their centroids 
+Feature-based clustering
+Extracts relevant features from time series data, such as mean, variance, frequency, or autocorrelation 
+The goal of time series clustering is to maximize data similarity within clusters and minimize it across clusters. 
