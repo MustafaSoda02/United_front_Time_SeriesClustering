@@ -1,0 +1,112 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import yfinance as yf
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+
+# Function to fetch stock data using yfinance
+def get_stock_data(tickers, start_date, end_date):
+    data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
+    return data
+
+# Function to preprocess and scale the data
+def preprocess_data(data):
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data.T)  # Transpose for correct shape
+    return scaled_data
+
+# Function to perform KMeans clustering
+def perform_kmeans(scaled_data, n_clusters):
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans.fit(scaled_data)
+    return kmeans.labels_
+
+# Function to apply PCA for dimensionality reduction (for 2D visualization)
+def apply_pca(scaled_data):
+    pca = PCA(n_components=2)
+    reduced_data = pca.fit_transform(scaled_data.T)
+    return reduced_data
+
+# Streamlit app layout
+st.title("Time-Series Clustering Dashboard")
+
+# Sidebar for user inputs
+st.sidebar.header("User Input Parameters")
+tickers = st.sidebar.text_input("Enter stock tickers (comma separated)", "AAPL, MSFT, GOOG")
+start_date = st.sidebar.date_input("Start Date", pd.to_datetime("2023-01-01"))
+end_date = st.sidebar.date_input("End Date", pd.to_datetime("2023-12-31"))
+n_clusters = st.sidebar.slider("Number of Clusters", min_value=2, max_value=5, value=3)
+
+# Fetch stock data
+tickers_list = [ticker.strip().upper() for ticker in tickers.split(",")]
+data = get_stock_data(tickers_list, start_date, end_date)
+
+# Display the stock data
+st.subheader("Stock Price Data")
+st.write(data)
+
+# Preprocess the data
+scaled_data = preprocess_data(data)
+
+# Perform KMeans clustering
+labels = perform_kmeans(scaled_data, n_clusters)
+
+# Display cluster labels
+st.subheader("Cluster Labels")
+cluster_labels = pd.DataFrame({"Ticker": tickers_list, "Cluster": labels})
+st.write(cluster_labels)
+
+# Plot the raw time-series data
+st.subheader("Raw Time-Series Data")
+fig, ax = plt.subplots(figsize=(12, 6))
+for ticker in tickers_list:
+    ax.plot(data.index, data[ticker], label=ticker)
+ax.set_title("Stock Prices Over Time")
+ax.set_xlabel("Date")
+ax.set_ylabel("Price (USD)")
+ax.legend(loc="best")
+ax.grid(True)
+st.pyplot(fig)
+
+# Plot the clustered time-series data
+st.subheader("Clustered Time-Series Data")
+fig, ax = plt.subplots(figsize=(12, 6))
+for cluster in range(n_clusters):
+    for i, ticker in enumerate(tickers_list):
+        if labels[i] == cluster:
+            ax.plot(data.index, data[ticker], label=f"{ticker} (Cluster {cluster + 1})")
+ax.set_title("Clustered Stock Prices Over Time")
+ax.set_xlabel("Date")
+ax.set_ylabel("Price (USD)")
+ax.legend(loc="best")
+ax.grid(True)
+st.pyplot(fig)
+
+# Apply PCA for dimensionality reduction and 2D visualization
+reduced_data = apply_pca(scaled_data)
+
+# Plot the 2D PCA visualization
+st.subheader("PCA - Clusters in 2D")
+fig = go.Figure()
+
+for cluster in range(n_clusters):
+    x = reduced_data[labels == cluster, 0]
+    y = reduced_data[labels == cluster, 1]
+    fig.add_trace(go.Scatter(
+        x=x, y=y,
+        mode="markers",
+        marker=dict(size=10),
+        name=f"Cluster {cluster + 1}"
+    ))
+
+fig.update_layout(
+    title="2D Visualization of Clusters (PCA)",
+    xaxis_title="PCA Component 1",
+    yaxis_title="PCA Component 2",
+    legend_title="Clusters"
+)
+st.plotly_chart(fig)
